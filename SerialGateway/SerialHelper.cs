@@ -69,7 +69,7 @@ namespace SerialGateway
 
                             sp.Read(buf, 0, length);
                             Console.WriteLine("Received Data: " + buf);
-                            Console.WriteLine("Received Data 2: " + System.Text.Encoding.Default.GetString(buf, 0, buf.Length));
+                            Console.WriteLine("Received Data 2: " + BitConverter.ToString(buf, 0, buf.Length));
 
                             //Console.WriteLine($"ReadLine: {sp.ReadLine()}");
                         }
