@@ -15,22 +15,14 @@ namespace SerialGateway
             }
         }
 
-        public static bool SendCommand(string portName)
+        public static void SendCommand(string portName)
         {
-
-
-            // to get port name you can use SerialPort.GetPortNames()
-            // string portName = "/dev/ttyUSB0";
-            int baudRate = 57600;
-
-
-
 
 
             using (var sp = new SerialPort(portName))
             {
                 sp.Encoding = Encoding.UTF8;
-                sp.BaudRate = baudRate;
+                sp.BaudRate = 57600;
                 sp.Handshake = Handshake.XOnXOff;
                 sp.DataBits = 8;
                 sp.Parity = Parity.None;
@@ -63,22 +55,29 @@ namespace SerialGateway
                     // if RATE is set to really high Arduino may fail to respond in time
                     // then on the next command you might get an old message
                     // ReadExisting will read everything from the internal buffer
-                    string existingData = sp.ReadExisting();
-                    Console.Write($"Existing Data:  {existingData}");
+                    var existingData = sp.ReadExisting();
+                    Console.Write($"Existing Data: {existingData}");
 
 
-                    if (!existingData.Contains('\n') && !existingData.Contains('\r'))
-                    {
+                    //if (!existingData.Contains('\n') && !existingData.Contains('\r'))
+                    //{
                         // we didn't get the response yet, let's wait for it then
                         try
                         {
-                            Console.WriteLine($"ReadLine: {sp.ReadLine()}");
+                            int length = sp.BytesToRead;
+                            byte[] buf = new byte[length];
+
+                            sp.Read(buf, 0, length);
+                            Console.WriteLine("Received Data: " + buf);
+                            Console.WriteLine("Received Data 2: " + System.Text.Encoding.Default.GetString(buf, 0, buf.Length));
+
+                            //Console.WriteLine($"ReadLine: {sp.ReadLine()}");
                         }
                         catch (TimeoutException)
                         {
                             Console.WriteLine($"ERROR: No response in {sp.ReadTimeout}ms.");
                         }
-                    }
+                    //}
                 }
             }
         }

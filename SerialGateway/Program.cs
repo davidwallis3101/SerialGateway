@@ -5,15 +5,12 @@ namespace SerialGateway
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             //SerialHelper.GetAvailablePorts();
             SerialHelper.SendCommand("/dev/ttyUSB0");
             TcpHelper.StartServer(5678);
             TcpHelper.Listen();
-
-
-
         }
     }
 }
