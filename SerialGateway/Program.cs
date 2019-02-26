@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO.Ports;
+using System.Text;
 
 namespace SerialGateway
 {
@@ -8,8 +9,11 @@ namespace SerialGateway
         static void Main()
         {
             //SerialHelper.GetAvailablePorts();
-            //SerialHelper.SendCommand("/dev/ttyUSB0");
-            SerialHelper.SendCommand("COM6");
+            //var onCommandZone0 = new byte[] { 0x55, 0x04, 0xA0, 0x00, 0x07 };
+
+
+            SerialHelper.DoSomething("COM6");
+            //SerialHelper.DoSomething("/dev/ttyUSB0");
             TcpHelper.StartServer(5678);
             TcpHelper.Listen();
         }

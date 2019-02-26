@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.IO.Ports;
+using System.Linq;
 
 namespace SerialGateway
 {
@@ -15,7 +16,7 @@ namespace SerialGateway
             }
         }
 
-        public static void SendCommand(string portName)
+        public static void DoSomething(string portName)
         {
 
 
@@ -38,7 +39,7 @@ namespace SerialGateway
                 while (!finished)
                 {
 
-   
+
                     //try
                     //{
                     //    sp.WriteLine(line);
@@ -50,25 +51,58 @@ namespace SerialGateway
 
                     //if (iter == 0)
                     //{
-                        // Console.WriteLine("11 receive, send command");
-                        byte[] onCommand = new byte[] { 0x55, 0x04, 0xA0, 0x00, 0x07 };
-                        byte[] offCommand = new byte[] { 0x55, 0x04, 0xA1, 0x00, 0x06 };
-                    //for (int i = 0; i < 2; i++)
-                    //{
-                        Console.WriteLine($"Send on Command");
-                        //System.Threading.Thread.Sleep(500);
-                        sp.Write(onCommand, 0, onCommand.Length);
+                    // Console.WriteLine("11 receive, send command");
 
-                        System.Threading.Thread.Sleep(1000);
-                        Console.WriteLine($"Send off Command");
-                        //System.Threading.Thread.Sleep(500);
-                        sp.Write(offCommand, 0, offCommand.Length);
-                        System.Threading.Thread.Sleep(1000);
+
+
+
+                    //byte[] onCommandZone0 = new byte[] { 0x55, 0x04, 0xA0, 0x00, 0x07 };
+                    //// start len  selsrc  one  src  crc
+                    //byte[] selectSource1Zone1 = new byte[] { 0x55, 0x05, 0xA3, 0x01, 0x01, 0x02 };
+
+                    //byte[] onCommandZone2 = new byte[] { 0x55, 0x04, 0xA0, 0x01, 0x06 };
+                    //byte[] selectSource2Zone2 = new byte[] { 0x55, 0x05, 0xA3, 0x01, 0x01, 0x02 };
+
+                    //byte[] offCommandZone1 = new byte[] { 0x55, 0x04, 0xA1, 0x00, 0x06 };
+                    //SendCommand(sp, onCommandZone0);
+
+
+                    int numZones = 6;
+
+                    for (int i = 0; i < numZones; i++)
+                    {
+                        SendOnCommand(sp, i);
+                    }
+
+                    for (int i = 0; i < numZones; i++)
+                    {
+                        SendSelectSourceCommand(sp, i, i);
+                    }
+
+
+
+
+
+                    //Console.WriteLine($"Send on Command");
+                    //    //System.Threading.Thread.Sleep(500);
+                    //    sp.Write(onCommandZone2, 0, onCommandZone2.Length);
+
+
+
+
+
+
+                    //System.Threading.Thread.Sleep(1000);
+                    //Console.WriteLine($"Send off Command");
+
+                    //System.Threading.Thread.Sleep(500);
+                    //sp.Write(offCommandZone1, 0, offCommandZone1.Length);
+                    //System.Threading.Thread.Sleep(1000);
                     //}
 
 
                     //iter++;
-                    //break;
+                    break;
                     //}
 
                     //if (finished)
@@ -121,5 +155,62 @@ namespace SerialGateway
             }
         }
 
+        private static void SendOnCommand(SerialPort sp, int Zone)
+        {
+            Console.WriteLine($"Send On Command Zone {Zone}");
+                                               // start len  oncmd  zne   crc
+            byte[] onCommand = new byte[] { 0x55, 0x04, 0xA0, (byte)Zone };
+
+           SendCommand(sp, GenerateCRC(onCommand));
+        }
+
+        private static void SendSelectSourceCommand(SerialPort sp, int Zone, int Source)
+        {
+            Console.WriteLine($"Send Select Source Command {Zone}");
+            // start len  oncmd  zne   crc
+            byte[] sourceCommand = new byte[] { 0x55, 0x05, 0xA3, (byte)Zone , (byte)Source };
+
+            SendCommand(sp, GenerateCRC(sourceCommand));
+        }
+
+        public static byte[] GenerateCRC(byte[] command)
+        {
+            var total = command.Aggregate(default(byte), (current, b) => (byte)(current + b));
+
+            var crc = (byte)(256 - total);
+
+            // Append CRC byte to command
+            var commandWithCRC = new byte[command.Length + 1];
+            command.CopyTo(commandWithCRC, 0);
+            commandWithCRC[commandWithCRC.Length - 1] = crc;
+
+            return commandWithCRC;
+        }
+
+
+        private static void SendCommand(SerialPort sp, byte[] command)
+        {
+            int retryCount = 10;
+            for (int i = 0; i < retryCount; i++)
+            {
+                Console.WriteLine($"Sending Command: {BitConverter.ToString(command)}");
+                System.Threading.Thread.Sleep(500);
+                sp.Write(command, 0, command.Length);
+                int length = sp.BytesToRead;
+                byte[] buf = new byte[length];
+                sp.Read(buf, 0, length);
+                if (length > 4) // Enough to get the ACK
+                {
+                    //Console.WriteLine($"Len: {length} Received Data: {BitConverter.ToString(buf)}");
+
+                    if (buf[2] == 0x95 && buf[4] == 0x01)
+                    {
+                        Console.WriteLine("ACK resp");
+                        break;
+                    }
+
+                }
+            }
+        }
     }
 }
